@@ -13,6 +13,10 @@ function createPlayer() {
     move: null,
     score: 0,
     history: [],
+
+    historyToString() {
+      return this.history.join(', ');
+    }
   };
 }
 
@@ -29,7 +33,10 @@ function createHuman() {
         console.log('Please choose: rock, paper, scissors, Spock, lizard');
         choice = this.convertShorthand(readline.question());
         if (['rock', 'paper', 'scissors', 'Spock', 'lizard'].includes(choice)) break;
-        console.log('Sorry, invalid choice. \n(Try the case sensative initial, "r" for "rock...)');
+        console.log(`Sorry, invalid choice. \nTry the CASE SENSATIVE initial:
+          "r" for "rock
+          "S" for "Spock
+          "l" for "lizard"...`);
       }
 
       this.move = choice;
@@ -146,8 +153,12 @@ function createComputer() {
 const RPSGame = {
   human: createHuman(),
   computer: createComputer(),
-  winner: null,
   onlyOneRound: true,
+  maxScore: 5,
+  winner: null,
+  humanWon: 'You Win!',
+  computerWon: 'Computer Wins',
+  tie: "It's a Tie",
 
   displayWelcome() {
     console.clear();
@@ -161,66 +172,62 @@ const RPSGame = {
   },
 
   displayWinner() {
-    let result;
-    switch (this.winner) {
-      case 'computer':
-        result = 'Computer Wins';
-        break;
-      case 'human':
-        result = 'You Win!';
-        break;
-      case 'tie':
-        result = "It's a Tie";
-        break;
-    }
-
     console.log(`You chose: ${this.human.move}`);
     console.log(`The computer chose: ${this.computer.move}`);
-    console.log('\n' + result + '\n_______________________');
+    console.log('\n' + this.winner + '\n_______________________');
     console.log(`Player: ${this.human.score} vs Computer ${this.computer.score}\n`);
   },
 
   displayHistory() {
     console.log(
-      `  Your Moves:\n  => [${this.human.history}]\n\n  Computers Moves:\n  => [${this.computer.history}]`
+      `  Your Moves:\n  => [${this.human.historyToString()}]\n\n  Computers Moves:\n  => [${this.computer.history}]`
     );
   },
 
   displayEnd(fullGame) {
     let regularGoodbye = '\nThanks for playing rock-paper-scissors-Spock-lizard.\nGoodbye!\n';
-    let bestOf5Goodbye = '\nThanks for playing to 5!. Goodbye!\n';
+    let playTo5Goodbye = '\nThanks for playing to 5!. Goodbye!\n';
+
     this.displayHistory();
-    console.log(fullGame ? bestOf5Goodbye : regularGoodbye);
+    console.log(fullGame ? playTo5Goodbye : regularGoodbye);
   },
 
-  continueToBestOf5() {
+  continueTo5() {
+    let answer;
     console.log('Would you like to first to 5? (y/n)');
-    let answer = readline.question().toLowerCase();
-    return ['y','yes','yup','yeah'].includes(answer);
+
+    while (true) {
+      answer = readline.question().toLowerCase();
+      if (['y','yes','yup','yeah'].includes(answer) ||
+          ['n','no','nah','nope'].includes(answer)) break;
+      console.log('Please choose either "y" or "n"');
+  }
+
+  return ['y','yes','yup','yeah'].includes(answer);
   },
 
   calculateWinner() {
     if (WINNING_MOVES[this.human.move].includes(this.computer.move)) {
-      this.winner = 'human';
+      this.winner = this.humanWon;
 
     } else if (WINNING_MOVES[this.computer.move].includes(this.human.move)) {
-      this.winner = 'computer';
+      this.winner = this.computerWon;
 
     } else {
-      this.winner = 'tie';
+      this.winner = this.tie;
     }
   },
 
   tally() {
-    if (this.winner === 'human') {
+    if (this.winner === this.humanWon) {
       this.human.score += 1;
-    } else if (this.winner === 'computer') {
+    } else if (this.winner === this.computerWon) {
       this.computer.score += 1;
     }
   },
 
   foundaWinner() {
-    return [this.human.score, this.computer.score].includes(5);
+    return this.human.score >= this.maxScore || this.computer.score >= this.maxScore;
   },
 
   play() {
@@ -237,7 +244,7 @@ const RPSGame = {
       this.displayWinner();
       if (this.foundaWinner()) break;
       if (this.human.history.length === 1) {
-        if (!this.continueToBestOf5()) break;
+        if (!this.continueTo5()) break;
       }
     }
     this.displayEnd(this.foundaWinner());
