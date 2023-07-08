@@ -1,11 +1,11 @@
 let readline = require('readline-sync');
 
-let WINNING_MOVES = {
-    rock: ['lizard', 'scissors'],
-    paper: ['rock', 'Spock'],
-    scissors: ['paper', 'lizard'],
-    Spock: ['scissors', 'rock'],
-    lizard: ['Spock', 'paper']
+const WINNING_MOVES = {
+  rock: ['lizard', 'scissors'],
+  paper: ['rock', 'Spock'],
+  scissors: ['paper', 'lizard'],
+  Spock: ['scissors', 'rock'],
+  lizard: ['Spock', 'paper']
 };
 
 function createPlayer() {
@@ -14,8 +14,9 @@ function createPlayer() {
     score: 0,
     history: [],
   };
-};
+}
 
+// eslint-disable-next-line max-lines-per-function
 function createHuman() {
   let playerObject = createPlayer();
 
@@ -26,53 +27,119 @@ function createHuman() {
       while (true) {
         console.log('____________________________________________________\n');
         console.log('Please choose: rock, paper, scissors, Spock, lizard');
-        choice = readline.question();
-        switch (choice) {
-          case 'r':
-            choice = 'rock';
-            break;
-          case 'p':
-            choice = 'paper';
-            break;
-          case 's':
-            choice = 'scissors'
-            break;
-          case 'S':
-            choice = 'Spock';
-            break;
-          case 'l':
-            choice = 'lizard';
-            break;
-        }
+        choice = this.convertShorthand(readline.question());
         if (['rock', 'paper', 'scissors', 'Spock', 'lizard'].includes(choice)) break;
         console.log('Sorry, invalid choice. \n(Try the case sensative initial, "r" for "rock...)');
       }
-      
+
       this.move = choice;
       this.history.push(this.move);
+    },
+
+    convertShorthand(choice) {
+      switch (choice) {
+        case 'r':
+          return 'rock';
+        case 'p':
+          return 'paper';
+        case 's':
+          return 'scissors';
+        case 'S':
+        case 'spock':
+          return 'Spock';
+        case 'l':
+          return 'lizard';
+      }
+      return choice;
     },
   };
 
   return Object.assign(playerObject, humanObject);
 }
 
+// eslint-disable-next-line max-lines-per-function
 function createComputer() {
   let playerObject = createPlayer();
 
   let computerObject = {
-    choose() {
-      let advantage = RPSGame.AI.createAdvantage();
-      if (advantage) {
-        this.move = advantage;
-        this.history.push(this.move);
-      } else {
-        const choices = ['rock', 'paper', 'scissors', 'Spock', 'lizard'];
-        let randomIndex = Math.floor(Math.random() * choices.length);
-        this.move = choices[randomIndex];
-        this.history.push(this.move);
-      }
+    AI: {
+      altChoices: [],
+
+      compMovesLog: {
+        rock: 0,
+        paper: 0,
+        scissors: 0,
+        Spock: 0,
+        lizard: 0,
+      },
+
+      advantageNum: null,
+
+      msgNums: {
+        1: '"I think I see a pattern..."',
+        2: '"I think I have you!"'
+      },
+
+      say() {
+        console.log(`\n...${this.msgNums[this.advantageNum]}\n`);
+      },
+
+      remember(winner, computerMove) {
+        if (winner === 'computer') {
+          ++this.compMovesLog[computerMove];
+        } else if (winner === 'human') {
+          --this.compMovesLog[computerMove];
+        }
+      },
+
+      advantage1(aMoveAgo, altChoices) {
+        this.advantageNum = 1;
+        for (let atk in WINNING_MOVES) {
+          if (!WINNING_MOVES[aMoveAgo].includes(atk) && atk !== aMoveAgo) {
+            altChoices.push(atk);
+          }
+        }
+        return altChoices;
+      },
+
+      advantage2(altChoices) {
+        this.advantageNum = 2;
+        for (let atk in this.compMovesLog) {
+          if (this.compMovesLog[atk] > -2) altChoices.push(atk);
+          if (this.compMovesLog[atk] > -1) altChoices.push(atk);
+          if (this.compMovesLog[atk] > 0) altChoices.push(atk, atk);
+        }
+        return altChoices;
+      },
+
+      createAdvantage(hHistory, cHistory) {
+        let aMoveAgo = hHistory[hHistory.length - 2];
+        let twoMovesAgo = hHistory[hHistory.length - 3];
+        let altChoices = [];
+
+        if (aMoveAgo === twoMovesAgo && aMoveAgo !== undefined) {
+          return this.advantage1(aMoveAgo, altChoices);
+
+        } else if (cHistory.length > 2) {
+          return this.advantage2(altChoices);
+
+        } else {
+          this.advantageNum = null;
+          return false;
+        }
+      },
+    },
+
+    choose(hHistory, cHistory) {
+      let altChoices = this.AI.createAdvantage(hHistory, cHistory);
+      let choices = altChoices.length ? altChoices : Object.keys(WINNING_MOVES);
+
+      let randomIndex = Math.floor(Math.random() * choices.length);
+      this.move = choices[randomIndex];
+      this.history.push(this.move);
     },
   };
+
   return Object.assign(playerObject, computerObject);
 }
 
@@ -80,119 +147,74 @@ const RPSGame = {
   human: createHuman(),
   computer: createComputer(),
   winner: null,
+  onlyOneRound: true,
 
-  AI: {
-    compMovesLog: {
-      rock: 0,
-      paper: 0,
-      scissors: 0,
-      Spock: 0,
-      lizard: 0,
-    },
-
-    usedAdvantage: false,
-
-    msg: {
-      1: '"I think I see a pattern..."',
-      2: '"I think I have you!"'
-    },
-
-    say(msg) {
-      console.log(`\n...${msg}\n`)
-    },
-
-    remember() {
-      if (RPSGame.winner === 'Computer wins!') {
-        ++this.compMovesLog[RPSGame.computer.move];
-      } else if (RPSGame.winner === "It's a tie") {
-        //no points alloted
-      } else {
-        --this.compMovesLog[RPSGame.computer.move];
-      }
-    },
-
-    createAdvantage() {
-      let oneMoveAgo = RPSGame.human.history[RPSGame.human.history.length - 2];
-      let twoMovesAgo = RPSGame.human.history[RPSGame.human.history.length - 3];
-      let altChoices = [];
-  
-      if (oneMoveAgo === twoMovesAgo && oneMoveAgo !== undefined) {
-        this.usedAdvantage = 1;
-
-        for (let atk in WINNING_MOVES) {
-          if (!WINNING_MOVES[oneMoveAgo].includes(atk) && atk !== oneMoveAgo) {
-            altChoices.push(atk);
-          }
-        }
-        let randomIDX = Math.floor(Math.random() * altChoices.length);
-        return altChoices[randomIDX];
-
-      } else if (RPSGame.computer.history.length > 2) {
-        this.usedAdvantage = 2;
-
-        for (let atk in this.compMovesLog) {
-          if (this.compMovesLog[atk] > -2) altChoices.push(atk)
-          if (this.compMovesLog[atk] > -1) altChoices.push(atk)
-          if (this.compMovesLog[atk] > 0) altChoices.push(atk, atk)
-        }
-        let randomIDX = Math.floor(Math.random() * altChoices.length);
-        return altChoices[randomIDX];
-      }
-      this.usedAdvantage = false;
-      return false;
-    },
-  },
-   
   displayWelcome() {
+    console.clear();
     console.log('                  WELCOME TO\n');
+    this.displayHeader();
   },
 
   displayHeader() {
     console.log('|    >>  rock-paper-scissors-Spock-lizard!  <<     |');
     console.log('|__________________________________________________|\n');
   },
-  
+
   displayWinner() {
+    let result;
+    switch (this.winner) {
+      case 'computer':
+        result = 'Computer Wins';
+        break;
+      case 'human':
+        result = 'You Win!';
+        break;
+      case 'tie':
+        result = "It's a Tie";
+        break;
+    }
+
     console.log(`You chose: ${this.human.move}`);
     console.log(`The computer chose: ${this.computer.move}`);
-    console.log('\n' + this.winner + '\n_______________________')
+    console.log('\n' + result + '\n_______________________');
     console.log(`Player: ${this.human.score} vs Computer ${this.computer.score}\n`);
   },
-  
+
   displayHistory() {
     console.log(
       `  Your Moves:\n  => [${this.human.history}]\n\n  Computers Moves:\n  => [${this.computer.history}]`
-      );
-    },
-
-  displayGoodbyeMessage(fullGame) {
-    let regularGoodbye = '\nThanks for playing rock-paper-scissors-Spock-lizard.\nGoodbye!\n';
-    let bestOf5Goodbye = '\nThanks for playing best of 5. Goodbye!\n'
-    fullGame ? console.log(bestOf5Goodbye) : console.log(regularGoodbye);
+    );
   },
 
-  playAgain() {
-    console.log('\nWould you like to play again?');
-    let answer = readline.question();
-    return answer.toLowerCase()[0] === 'y';
+  displayEnd(fullGame) {
+    let regularGoodbye = '\nThanks for playing rock-paper-scissors-Spock-lizard.\nGoodbye!\n';
+    let bestOf5Goodbye = '\nThanks for playing to 5!. Goodbye!\n';
+    this.displayHistory();
+    console.log(fullGame ? bestOf5Goodbye : regularGoodbye);
+  },
+
+  continueToBestOf5() {
+    console.log('Would you like to first to 5? (y/n)');
+    let answer = readline.question().toLowerCase();
+    return ['y','yes','yup','yeah'].includes(answer);
   },
 
   calculateWinner() {
     if (WINNING_MOVES[this.human.move].includes(this.computer.move)) {
-      this.winner = 'You win!';
+      this.winner = 'human';
 
     } else if (WINNING_MOVES[this.computer.move].includes(this.human.move)) {
-      this.winner = 'Computer wins!';
+      this.winner = 'computer';
 
     } else {
-      this.winner = "It's a tie";
+      this.winner = 'tie';
     }
   },
 
   tally() {
-    if (this.winner === 'You win!') {
+    if (this.winner === 'human') {
       this.human.score += 1;
-    } else if (this.winner === 'Computer wins!') {
+    } else if (this.winner === 'computer') {
       this.computer.score += 1;
     }
   },
@@ -202,24 +224,23 @@ const RPSGame = {
   },
 
   play() {
-    console.clear();
     this.displayWelcome();
-    this.displayHeader()
     while (true) {
       this.human.choose();
-      this.computer.choose();
+      this.computer.choose(this.human.history, this.computer.history);
       this.calculateWinner();
       this.tally();
+      this.computer.AI.remember(this.winner, this.computer.move);
       console.clear();
       this.displayHeader();
-      if (this.AI.usedAdvantage) this.AI.say(this.AI.msg[this.AI.usedAdvantage]);
+      if (this.computer.AI.advantageNum) this.computer.AI.say();
       this.displayWinner();
-      this.displayHistory();
-      this.AI.remember();
       if (this.foundaWinner()) break;
-      if (!this.playAgain()) break;
+      if (this.human.history.length === 1) {
+        if (!this.continueToBestOf5()) break;
+      }
     }
-    this.displayGoodbyeMessage(this.foundaWinner());
+    this.displayEnd(this.foundaWinner());
   },
 };
 
