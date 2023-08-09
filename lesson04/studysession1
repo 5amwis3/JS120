@@ -1,0 +1,137 @@
+// JS120/129 Study Session with Grace
+// Please join the call :)
+
+/*
+Topics for Discussion
+---------------------
+- Object creation patterns
+  - Factory functions
+  - OLOO
+  - Constructor Functions
+  - `class` keyword
+
+What is OOP?
+------------
+- A paradigm that allows us to maintain code
+
+- Abstracting the logic of the program into something more human-like: objects (nouns, verbs, how objects interact with each other)
+
+  - Abstraction means high-level (broad, general concept) vs. low-level (specific details)
+
+    - Go through all the values of an array (high-level)
+    - Initialize an index, use the index to access the value, increment the index
+    
+    - Tic Tac Toe
+    - Board interacts with Marker, Player interacts with Marker and Board (high-level)
+
+
+Object Creation Patterns:
+  - Automate object creation
+  - Determine type of instance objects are
+  - Delegate method calls to avoid duplication
+
+Factory Functions
+-----------------
+- A function that returns an object literal ({})
+- Arguments are used to set instance properties and methods
+- Can't know the "type" of an instance (we can't decipher which function created it)
+- Every instance will hold a copy of the methods
+*/
+
+function makeVehicle(make, model, wheels) {
+  return {
+    make: make,
+    model: model,
+    wheels: wheels,
+    engineOn() {
+      console.log("Vroom");
+    },
+  };
+}
+
+// let van = makeVehicle("Toyota", "Sienna", 4);
+
+// make, model to be determined by arguments
+// wheels to always be 4
+// stereo function
+// should still have access to engineOn
+
+function makeCar(make, model) {
+  let car = makeVehicle(make, model, 4);
+  car.blastStereo = function () {
+    console.log("Bum bum bum");
+  }
+  return car;
+}
+
+function makeCar(make, model) {
+  let vehicle = makeVehicle(make, model, 4);
+  return Object.assign(vehicle, {
+    blastStereo() {
+      //
+    }
+  });
+}
+
+/*
+- return an object
+- the object we return has to have the properties and methods that a Vehicle has
+*/
+
+/*
+What is a sub-type?
+  - Helps us create objects that has a relationship to the super-type
+  - An extension of the super type
+  - It has the properties and methods of a super-type
+*/
+
+/*
+OLOO (Objects Linking to Other Objects)
+----
+- An object literal that will act as our prototype object
+- `init` method
+- Inheritance (Object.create(), [[Prototype]])
+
+- Inheritance allows us to:
+  - Delegate method calls (no duplication)
+  - Test whether an instance is a "type"
+    (Object.prototype.isPrototypeOf)
+
+OLOO Sub-Type:
+  - Sub-type Prototype has to inherit from Super-type prototype
+  - 
+*/
+
+let VehiclePrototype = {
+  init(make, model, wheels) {
+    this.make = make;
+    this.model = model;
+    this.wheels = wheels;
+    return this;
+  },
+
+  engineOn() {
+    console.log("Vroom");
+  },
+};
+
+let van = Object.create(VehiclePrototype).init("Toyota", "Sienna", 4);
+
+console.log(VehiclePrototype.isPrototypeOf(van));
+
+let CarPrototype = Object.create(VehiclePrototype);
+
+CarPrototype.blastStereo = function() {
+  //
+}
+
+CarPrototype.init = function(make, model) {
+  return VehiclePrototype.init.call(this, make, model, 4);
+}
+
+
+let car = Object.create(CarPrototype).init("Toyota", "Sienna");
+console.log(car);
+
+console.log(CarPrototype.isPrototypeOf(car));
+console.log(VehiclePrototype.isPrototypeOf(car));

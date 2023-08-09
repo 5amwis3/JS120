@@ -52,3 +52,5 @@ console.log(book3.read); // => false
 console.log(book1.getDescription()); // Mythos was written by David Fry. I haven't read it.
 book1.readBook();
 console.log(book1.getDescription()); // Mythos was written by David Fry. I have read it.
+
+console.log(Object.getOwnPropertyNames(book1));
